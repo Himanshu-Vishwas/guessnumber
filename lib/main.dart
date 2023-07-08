@@ -24,9 +24,11 @@ class _NumberGuessingGameState extends State<NumberGuessingGame> {
   }
 
   void startNewGame() {
-    targetNumber = random.nextInt(100) + 1;
-    attempts = 0;
-    feedback = "";
+    setState(() {
+      targetNumber = random.nextInt(100) + 1;
+      attempts = 0;
+      feedback = "";
+    });
   }
 
   void checkGuess(int guess) {
@@ -53,35 +55,40 @@ class _NumberGuessingGameState extends State<NumberGuessingGame> {
         ),
         body: Center(
           child: Container(
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
             decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
                   hexStringToColor("CB2B93"),
                   hexStringToColor("9546C4"),
                   hexStringToColor("5E61F4")
                 ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  'Guess the number between 1 and 100',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white,fontSize: 20.0),
-                ),
-                SizedBox(height: 20.0),
-                Text(
-                  feedback,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white,fontSize: 20.0),
-                ),
-                SizedBox(height: 20.0),
-                ElevatedButton(
-                  onPressed: () => startNewGame(),
-                  child: Text('Start New Game'),
-                ),
-                SizedBox(height: 20.0),
-                GuessInputForm(checkGuess),
-                SizedBox(height: 20.0),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(height: MediaQuery.of(context).size.height/6),
+                  Text(
+                    'Guess the number between 1 and 100',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white,fontSize: 20.0),
+                  ),
+                  SizedBox(height: 20.0),
+                  Text(
+                    feedback,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white,fontSize: 20.0),
+                  ),
+                  SizedBox(height: 20.0),
+                  ElevatedButton(
+                    onPressed: () => startNewGame(),
+                    child: Text('Start New Game'),
+                  ),
+                  SizedBox(height: 20.0),
+                  GuessInputForm(checkGuess),
+                  SizedBox(height: 20.0),
+                ],
+              ),
             ),
           ),
         ),
