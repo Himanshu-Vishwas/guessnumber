@@ -1,0 +1,45 @@
+name: guessnumber
+description: "A professional Guess the Number game built with Flutter."
+publish_to: 'none'
+
+version: 2.0.0+2
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.3.5
+  confetti: ^0.7.0
+  animate_do: ^3.3.4
+  audioplayers: ^6.1.0
+  vibration: ^2.0.1
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+
+flutter_native_splash:
+  color: "#1a237e"
+  image: "assets/icon/icon.png"
+  android_12:
+    image: "assets/icon/icon.png"
+    color: "#1a237e"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+    - assets/audio/
