@@ -58,7 +58,8 @@ enum GameMode {
   classic('Classic', Icons.sports_esports),
   timeAttack('Time Attack', Icons.timer),
   hardcore('Hardcore', Icons.whatshot),
-  zen('Zen', Icons.self_improvement);
+  zen('Zen', Icons.self_improvement),
+  dailyChallenge('Daily', Icons.today);
 
   final String label;
   final IconData icon;
@@ -86,7 +87,9 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
   int _rangeFinders = 0;
   GameMode _gameMode = GameMode.classic;
   int _rateStatus = 0; // 0: None, 1: Rated, 2: Never
-
+  int _streakCount = 0;
+  String _lastPlayDate = '';
+  bool _isNeonTheme = false;
 
   @override
   void initState() {
@@ -108,6 +111,28 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
       _extraLives = prefs.getInt('extraLives') ?? 0;
       _rangeFinders = prefs.getInt('rangeFinders') ?? 0;
       _rateStatus = prefs.getInt('rate_status') ?? 0;
+      _streakCount = prefs.getInt('streakCount') ?? 0;
+      _lastPlayDate = prefs.getString('lastPlayDate') ?? '';
+      _isNeonTheme = prefs.getBool('isNeonTheme') ?? false;
+
+      // Streak logic
+      String today = DateTime.now().toIso8601String().split('T').first;
+      if (_lastPlayDate != today) {
+        if (_lastPlayDate.isNotEmpty) {
+          DateTime lastDate = DateTime.parse(_lastPlayDate);
+          DateTime currentDate = DateTime.parse(today);
+          if (currentDate.difference(lastDate).inDays > 1) {
+            _streakCount = 0; // Reset streak if missed a day
+          } else {
+            _streakCount++; // Increment streak
+          }
+        } else {
+          _streakCount = 1;
+        }
+        _lastPlayDate = today;
+        prefs.setInt('streakCount', _streakCount);
+        prefs.setString('lastPlayDate', _lastPlayDate);
+      }
     });
   }
 
@@ -222,11 +247,13 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
         children: [
           // Background Gradient
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                colors: _isNeonTheme
+                    ? const [Color(0xFF2B00FF), Color(0xFFFF00D4), Color(0xFF00FFEA)]
+                    : const [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
               ),
             ),
           ),
@@ -351,7 +378,23 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
               ],
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.local_fire_department, color: Colors.redAccent, size: 16),
+                const SizedBox(width: 3),
+                Text('$_streakCount', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -468,6 +511,7 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
               vibrationEnabled: _vibrationEnabled,
               extraLives: _extraLives,
               rangeFinders: _rangeFinders,
+              isNeonTheme: _isNeonTheme,
               onOpenShop: () => _showShopDialog(),
             ),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -504,6 +548,10 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
         IconButton(
           onPressed: _showInfoDialog,
           icon: const Icon(Icons.info_outline, color: Colors.white54),
+        ),
+        IconButton(
+          onPressed: () => _toggleSetting('isNeonTheme', !_isNeonTheme),
+          icon: Icon(_isNeonTheme ? Icons.color_lens : Icons.color_lens_outlined, color: _isNeonTheme ? Colors.pinkAccent : Colors.white54),
         ),
         IconButton(
           onPressed: _showStatsDialog,
@@ -630,8 +678,11 @@ class GamePlayScreen extends StatefulWidget {
     required this.vibrationEnabled,
     this.extraLives = 0,
     this.rangeFinders = 0,
+    this.isNeonTheme = false,
     this.onOpenShop,
   });
+
+  final bool isNeonTheme;
 
   final VoidCallback? onOpenShop;
 
@@ -713,9 +764,17 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
     bool wasGameOver = _isGameOver;
     setState(() {
       _targetNumber = Random().nextInt(widget.difficulty.maxNumber) + 1;
-      _attemptsRemaining = widget.gameMode == GameMode.hardcore 
-          ? 1 
-          : (widget.gameMode == GameMode.zen ? 999 : widget.difficulty.maxAttempts);
+      
+      if (widget.gameMode == GameMode.hardcore) {
+        _attemptsRemaining = 1;
+      } else if (widget.gameMode == GameMode.zen) {
+        _attemptsRemaining = 999;
+      } else if (widget.gameMode == GameMode.dailyChallenge) {
+        _attemptsRemaining = (widget.difficulty.maxAttempts / 2).ceil(); // Half attempts for daily challenge
+      } else {
+        _attemptsRemaining = widget.difficulty.maxAttempts;
+      }
+      
       _attemptsCount = 0;
       _minPossible = 1;
       _maxPossible = widget.difficulty.maxNumber;
@@ -1097,7 +1156,7 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
     final isSmallScreen = size.height < 700;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F2027),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text('${widget.difficulty.label} Mode'.toUpperCase(), style: const TextStyle(fontSize: 14, letterSpacing: 2)),
         centerTitle: true,
@@ -1105,9 +1164,21 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new), onPressed: () => Navigator.pop(context)),
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         alignment: Alignment.topCenter,
         children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: widget.isNeonTheme
+                    ? const [Color(0xFF2B00FF), Color(0xFFFF00D4), Color(0xFF00FFEA)]
+                    : const [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+              ),
+            ),
+          ),
           ConfettiWidget(
             confettiController: _confettiController,
             blastDirectionality: BlastDirectionality.explosive,

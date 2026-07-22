@@ -30,7 +30,7 @@ android {
     defaultConfig {
         applicationId = "mm.marsman.guessnumber"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
